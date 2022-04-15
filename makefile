@@ -1,2 +1,2 @@
 all:
-	g++ ipk-sniffer.cpp -o ipk-sniffer
+	g++ ipk-sniffer.cpp -o ipk-sniffer -lpcap

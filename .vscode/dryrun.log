@@ -1,6 +1,0 @@
-make.exe --dry-run --keep-going --print-directory
-make.exe: Entering directory `c:/Users/Lenovo/Desktop/school/ipk/p2'
-g++ ipk-sniffer.cpp -o ipk-sniffer
- 
-make.exe: Leaving directory `c:/Users/Lenovo/Desktop/school/ipk/p2'
- 
