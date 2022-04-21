@@ -17,6 +17,10 @@ enum PacketProtocol {
     Unset, TCP, UDP, ICMP, ICMPv6, ARP
 };
 
+/**
+ * @brief the packet timestamp to UTC and prints it 
+ * @param ts timestamp structure of the packet
+ */
 void print_timestamp(timeval ts){
     char tmbuf[64];
     time_t time = ts.tv_sec;
@@ -25,22 +29,34 @@ void print_timestamp(timeval ts){
     printf("%s.%iZ\n", tmbuf, (int) ts.tv_usec/1000);
 }
 
+/**
+ * @brief prints given mac address
+ * @param addr the mac address string
+ */
 void print_mac_addr(unsigned char addr[6]){
     for (int i = 0; i < 6; i++)
     {
         if(addr[i] == (unsigned char)'0'){
             addr[i] = (unsigned char) 'A';
-            fprintf(stderr,"REPLACING");
+            // fprintf(stderr,"REPLACING");
         }
     }
-    
     printf("%02x:%02x:%02x:%02x:%02x:%02x", addr[0],addr[1],addr[2],addr[3],addr[4],addr[5]);
 }
 
+/**
+ * @brief prints IPv4 address from the numeric format
+ * @param ip the ip address uint
+ */
 void print_ipv4(uint32_t ip){
     printf("%03d.%03d.%03d.%03d",(ip & 0xFF000000) >> 24,(ip & 0x00FF0000) >> 16,(ip & 0x0000FF00) >> 8,ip & 0x000000FF);
 }
 
+/**
+ * @brief Prints ethernet header of given frame
+ * @param packet the packet of which header will be printed
+ * @param packet_header pcap packet header
+ */
 void print_eth_header(const u_char* packet, struct pcap_pkthdr packet_header){
     struct ethhdr *eth = (struct ethhdr *)packet;
 
@@ -53,6 +69,10 @@ void print_eth_header(const u_char* packet, struct pcap_pkthdr packet_header){
     printf("frame length: %d bytes\n", packet_header.len);
 }
 
+/**
+ * @brief prints the internet protocol header
+ * @param packet the packet of which the header will be printed
+ */
 void print_ip_header(const u_char* packet){
     struct iphdr* ip_header = (struct iphdr *) (packet + ETH_HLEN);
     sockaddr_in addr_src, addr_dst;
@@ -68,11 +88,9 @@ void print_ip_header(const u_char* packet){
     putchar('\n');
 }
 
-void print_packet_info(const u_char *packet, struct pcap_pkthdr packet_header) {
-    printf("Packet capture length: %d\n", packet_header.caplen);
-    printf("Packet total length %d\n", packet_header.len);
-}
-
+/**
+ * @brief prints the list of all network interfaces
+ */
 void print_all_interfaces(){
     char errbuf[127];
     pcap_if_t *alldevsp , *interface;
@@ -93,14 +111,14 @@ void print_all_interfaces(){
     pcap_freealldevs(alldevsp);
 }
 
-void print_arp(const u_char* packet, pcap_pkthdr packet_header){
-}
-
-void print_icmp(const u_char* packet, pcap_pkthdr packet_header){
-    print_ip_header(packet);
-    
-}
-
+/**
+ * @brief checks if the packet has given port
+ * 
+ * @param packet the packet which will be checked
+ * @param port number of checked port
+ * @return true if packet's port == port
+ * @return false otherwise
+ */
 bool has_port(const u_char* packet, uint16_t port){
 
     struct iphdr* ip_header = (struct iphdr *) (packet + ETH_HLEN);
@@ -125,6 +143,63 @@ bool has_port(const u_char* packet, uint16_t port){
 
 }
 
+/**
+ * @brief prints one line of packet
+ * 
+ * @param packet printed packet
+ * @param len how many bytes to print
+ * @param offset where to start printing from
+ */
+void print_payload_line(const u_char* packet, int len, int offset){
+    for (int i = 0; i < len; i++)
+    {
+        unsigned char c = (unsigned char) packet[i+offset];
+        if(i == 8)
+            putchar(' ');
+        printf("%02x",c);
+        putchar(' ');
+    }
+    
+    for (int i = 0; i < len; i++)
+    {
+        unsigned char c = (unsigned char) packet[i+offset];
+        if(i == 8)
+            putchar(' ');
+        if(isprint(c))
+            printf("%c",c);
+        else
+            putchar('.');
+    }
+    putchar('\n');
+}
+
+/**
+ * @brief prints the whole packet
+ * 
+ * @param packet will be printed
+ * @param len length of the packet
+ */
+void print_payload(const u_char* packet, int len){
+    int len_remaining = len;
+    int line_count = 0;
+    printf("\n",len_remaining);
+    while(len_remaining > 0){
+        int offset = line_count * 16;
+        int line_len = (len_remaining > 16) ? 16 : len_remaining;
+        printf("0x%04x ",offset,offset,line_len);
+        print_payload_line(packet, line_len, offset);
+
+        len_remaining = len_remaining - 16;
+        line_count++;
+    }
+}
+
+/**
+ * @brief prints TCP packet info
+ * 
+ * @param packet will be printed
+ * @param packet_header header of the packet
+ */
 void print_tcp(const u_char* packet, pcap_pkthdr packet_header){
     struct iphdr* ip_header = (struct iphdr *) (packet + ETH_HLEN);
     int ip_header_len = (int) ip_header->ihl*4;
@@ -137,6 +212,12 @@ void print_tcp(const u_char* packet, pcap_pkthdr packet_header){
     printf("dst port: %u\n",ntohs(tcp_header->dest));
 }
 
+/**
+ * @brief prints info about given UDP packet
+ * 
+ * @param packet the packet to be printed
+ * @param packet_header header of the packet
+ */
 void print_udp(const u_char* packet, pcap_pkthdr packet_header){
     struct iphdr* ip_header = (struct iphdr *) (packet + ETH_HLEN);
     int ip_header_len = ip_header->ihl*4;
@@ -146,6 +227,29 @@ void print_udp(const u_char* packet, pcap_pkthdr packet_header){
     struct udphdr* udp_header = (struct udphdr*)(packet + ip_header_len + ETH_HLEN);
     printf("src port: %u\n",ntohs(udp_header->source));
     printf("dst port: %u\n",ntohs(udp_header->dest));
+
+    print_payload(packet,packet_header.len);
+    
+}
+
+/**
+ * @brief prints ARP protocol
+ * 
+ * @param packet 
+ * @param packet_header 
+ */
+void print_arp(const u_char* packet, pcap_pkthdr packet_header){
+}
+
+/**
+ * @brief prints ICMP protocol
+ * 
+ * @param packet 
+ * @param packet_header 
+ */
+void print_icmp(const u_char* packet, pcap_pkthdr packet_header){
+    print_ip_header(packet);
+    
 }
 
 int main(int argc, char *argv[])
@@ -237,6 +341,9 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    /**
+     * PACKET CAPTURE
+     */
     int packet_count = 0;
     while (packet_count < n){
         PacketProtocol protocol = Unset;
@@ -246,6 +353,7 @@ int main(int argc, char *argv[])
 
             struct ether_header* eth_header = (struct ether_header *) packet;
 
+            //DETERMINING AND FILTERING APPROPRIATE PROTOCOL AND PORT
             switch (ntohs(eth_header->ether_type))
             {
                 case ETHERTYPE_IP:{
