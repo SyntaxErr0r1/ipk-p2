@@ -52,6 +52,16 @@ void print_ipv4(uint32_t ip){
     printf("%03d.%03d.%03d.%03d",(ip & 0xFF000000) >> 24,(ip & 0x00FF0000) >> 16,(ip & 0x0000FF00) >> 8,ip & 0x000000FF);
 }
 
+/**
+ * @brief finds where the longest row of zeros starts and its length in IPv6
+ * 
+ * @param address the IPv6 which will be searched
+ * @param zeros_start 
+ * @param zeros_length 
+ * @note for example in fe80:0000:0000:0000:0215:5dff:fec5:288d would return:
+ * @note zeros_start = 1 (zeros start at the 1st pair (indexing from 0))
+ * @note zeros_length = 2 (the last zero pair is 2 pairs from the first)
+ */
 void find_zeros(struct in6_addr* address, int* zeros_start,int* zeros_length){
     int longest_zero_start = -1;
     int longest_zero_len = -1;
@@ -85,6 +95,13 @@ void find_zeros(struct in6_addr* address, int* zeros_start,int* zeros_length){
     (*zeros_length) = longest_zero_len;
 }
 
+/**
+ * @brief prints two numbers together
+ * 
+ * @param n0 one 8bit number 
+ * @param n1 second 8bit number
+ * @note used for printing IPv6 address
+ */
 void print_pair(int n0, int n1){
     if(n0 == 0 && n1 == 0)
         putchar('0');
