@@ -6,3 +6,9 @@ http://yuba.stanford.edu/~casado/pcap/section4.html
 
 printing data
 https://www.tcpdump.org/other/sniffex.c
+
+printing IPv6
+https://stackoverflow.com/questions/3727421/expand-an-ipv6-address-so-i-can-print-it-to-stdout
+
+getting the protocol name IPv6
+https://cpp.hotexamples.com/examples/-/-/process_tcp_packet/cpp-process_tcp_packet-function-examples.html
